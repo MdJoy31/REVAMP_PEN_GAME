@@ -1,7 +1,6 @@
 import React from 'react';
 import './App.css';
-import PenGame from './PenGame'; // No need for `./components/` folder in your case
-
+import PenGame from './PenGame';
 
 function App() {
   return (
@@ -10,5 +9,4 @@ function App() {
     </div>
   );
 }
-
 export default App;

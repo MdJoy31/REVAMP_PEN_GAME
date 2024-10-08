@@ -1,4 +1,36 @@
-import React, { Component } from 'react';
+import React, { Component, createRef, RefObject } from 'react';
+
+// Interface for the shape
+interface Shape {
+  type: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  radius: number;
+  color: string;
+  strokeWidth: number;
+}
+
+// Interface for the state
+interface PenGameState {
+  selectedFeatures: string[];
+  description: string;
+  showCanvas: boolean;
+  strokeColor: string;
+  strokeWidth: number;
+  currentShape: string;
+  shapeWidth: number;
+  shapeHeight: number;
+  shapeRadius: number;
+  shapes: Shape[];
+  drawingPoints: { x: number; y: number }[];
+  isDrawing: boolean;
+  dragging: number | null;
+  offsetX: number;
+  offsetY: number;
+  showThankYou: boolean;
+}
 
 const featuresList = [
   "Smooth Grip", "Retractable Tip", "Ink Color Change", "Stylus End", "Clip-On Cap",
@@ -7,8 +39,11 @@ const featuresList = [
   "Lightweight Design", "Textured Body", "Matte Finish", "Glossy Finish", "Comfort Grip"
 ];
 
-class PenGame extends Component {
-  constructor(props) {
+class PenGame extends Component<{}, PenGameState> {
+  canvasRef: RefObject<HTMLCanvasElement>;
+  ctx: CanvasRenderingContext2D | null = null;
+
+  constructor(props: {}) {
     super(props);
     this.state = {
       selectedFeatures: [],
@@ -28,8 +63,7 @@ class PenGame extends Component {
       offsetY: 0,
       showThankYou: false,
     };
-    this.canvasRef = React.createRef();
-    this.ctx = null;
+    this.canvasRef = createRef();
   }
 
   componentDidMount() {
@@ -40,14 +74,13 @@ class PenGame extends Component {
   }
 
   componentDidUpdate() {
-    // Ensure the context is set after the component updates
     const canvas = this.canvasRef.current;
     if (canvas && !this.ctx) {
       this.ctx = canvas.getContext('2d');
     }
   }
 
-  handleFeatureSelect = (feature) => {
+  handleFeatureSelect = (feature: string) => {
     const { selectedFeatures } = this.state;
     if (selectedFeatures.includes(feature)) {
       this.setState({ selectedFeatures: selectedFeatures.filter(f => f !== feature) });
@@ -60,32 +93,32 @@ class PenGame extends Component {
     this.setState({ showThankYou: true });
   };
 
-  handleColorChange = (event) => {
+  handleColorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({ strokeColor: event.target.value });
   };
 
-  handleBrushSizeChange = (event) => {
-    this.setState({ strokeWidth: event.target.value });
+  handleBrushSizeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ strokeWidth: parseInt(event.target.value, 10) });
   };
 
-  handleShapeSelect = (shape) => {
+  handleShapeSelect = (shape: string) => {
     this.setState({ currentShape: shape });
   };
 
-  handleShapeWidthChange = (event) => {
-    this.setState({ shapeWidth: event.target.value });
+  handleShapeWidthChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ shapeWidth: parseInt(event.target.value, 10) });
   };
 
-  handleShapeHeightChange = (event) => {
-    this.setState({ shapeHeight: event.target.value });
+  handleShapeHeightChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ shapeHeight: parseInt(event.target.value, 10) });
   };
 
-  handleShapeRadiusChange = (event) => {
-    this.setState({ shapeRadius: event.target.value });
+  handleShapeRadiusChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ shapeRadius: parseInt(event.target.value, 10) });
   };
 
   // Start drawing or selecting shape
-  handleMouseDown = (event) => {
+  handleMouseDown = (event: React.MouseEvent) => {
     const canvas = this.canvasRef.current;
     if (!canvas || !this.ctx) return;
 
@@ -93,12 +126,10 @@ class PenGame extends Component {
     const mouseX = event.clientX - rect.left;
     const mouseY = event.clientY - rect.top;
 
-    // Freehand drawing
     if (this.state.currentShape === 'freehand') {
       this.setState({ isDrawing: true });
       const ctx = this.ctx;
 
-      // Ensure the context is available before starting the drawing process
       if (!ctx) return;
 
       ctx.strokeStyle = this.state.strokeColor;
@@ -107,7 +138,6 @@ class PenGame extends Component {
       ctx.moveTo(mouseX, mouseY);
       this.setState({ drawingPoints: [{ x: mouseX, y: mouseY }] });
     } else {
-      // Shape drawing
       const shapeIndex = this.getClickedShape(mouseX, mouseY);
       if (shapeIndex !== -1) {
         const shape = this.state.shapes[shapeIndex];
@@ -117,8 +147,7 @@ class PenGame extends Component {
           offsetY: mouseY - shape.y,
         });
       } else {
-        // Add a new shape on mouse down
-        const newShape = {
+        const newShape: Shape = {
           type: this.state.currentShape,
           x: mouseX,
           y: mouseY,
@@ -138,7 +167,7 @@ class PenGame extends Component {
   };
 
   // Handle dragging or freehand drawing
-  handleMouseMove = (event) => {
+  handleMouseMove = (event: React.MouseEvent) => {
     const canvas = this.canvasRef.current;
     if (!canvas) return;
 
@@ -154,7 +183,6 @@ class PenGame extends Component {
       ctx.lineTo(mouseX, mouseY);
       ctx.stroke();
 
-      // Update drawing points
       this.setState((prevState) => ({
         drawingPoints: [...prevState.drawingPoints, { x: mouseX, y: mouseY }],
       }));
@@ -183,9 +211,9 @@ class PenGame extends Component {
   };
 
   // Detect if a shape is clicked
-  getClickedShape = (mouseX, mouseY) => {
+  getClickedShape = (mouseX: number, mouseY: number) => {
     const { shapes } = this.state;
-    for (let i = shapes.length - 1; i >= 0; i--) { // Start from top-most shape
+    for (let i = shapes.length - 1; i >= 0; i--) {
       const shape = shapes[i];
       if (shape.type === 'rectangle' || shape.type === 'line') {
         if (mouseX > shape.x && mouseX < shape.x + shape.width &&
@@ -205,12 +233,11 @@ class PenGame extends Component {
   // Redraw the canvas
   redrawCanvas = () => {
     const canvas = this.canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    if (!canvas || !this.ctx) return;
 
-    // Clear the canvas before drawing
+    const ctx = this.ctx;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw each shape
     this.state.shapes.forEach(shape => {
       ctx.strokeStyle = shape.color;
       ctx.lineWidth = shape.strokeWidth;
@@ -354,7 +381,7 @@ class PenGame extends Component {
                 <textarea
                   placeholder="Describe your pen design..."
                   className="w-full p-4 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  rows="4"
+                  rows={4}
                   value={this.state.description}
                   onChange={(e) => this.setState({ description: e.target.value })}
                 />
